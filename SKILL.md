@@ -1,6 +1,6 @@
 ---
 name: x-list-monitor
-description: Use when setting up an agent to monitor an X/Twitter List for news, research, market intelligence, community tracking, content discovery, or custom signal monitoring, with optional scheduled delivery.
+description: Use when setting up an agent to monitor an X/Twitter List, optionally alongside LinkedIn/company-page sources, for news, research, market intelligence, community tracking, or custom signal monitoring with optional scheduled delivery.
 version: 1.0.0
 author: Hermes Agent
 license: MIT
@@ -14,7 +14,7 @@ metadata:
 
 ## Overview
 
-This skill helps an agent set up monitoring for an X/Twitter List.
+This skill helps an agent set up monitoring for an X/Twitter List. It can optionally include LinkedIn sources, but LinkedIn support is always best-effort and capability-dependent.
 
 The user may provide a list number, a list URL, or a natural-language request such as:
 
@@ -33,7 +33,8 @@ This skill is runtime-agnostic. It can be used in Hermes, OpenClaw, or another c
 Use this skill when the user wants to:
 
 - Monitor an X/Twitter List.
-- Turn X List posts into alerts, summaries, dashboards, or archives.
+- Optionally monitor LinkedIn company pages, authorized organization posts, user-supplied LinkedIn URLs, or third-party LinkedIn feeds as best-effort supplemental sources.
+- Turn X List posts and optional LinkedIn items into alerts, summaries, dashboards, or archives.
 - Track industry media, projects, researchers, KOLs, companies, protocols, security accounts, market feeds, policy feeds, or any custom group of X accounts.
 - Create scheduled monitoring with cron or a recurring task.
 - Decide what to push, what to archive, and what to ignore.
@@ -45,6 +46,8 @@ Do not use this skill for:
 - Posting to X.
 - Managing the user's X account.
 - Scraping private or unauthorized content.
+- Bypassing login, CAPTCHA, 2FA, paywalls, rate limits, or platform access controls.
+- Asking the user to paste raw LinkedIn cookies into chat.
 - Guaranteeing complete historical backfill without tool support for pagination or bounded retrieval.
 
 ## Runtime Capability Check
@@ -82,6 +85,7 @@ Check whether the environment has:
 
 - X/Twitter search or browser access.
 - Ability to fetch from a List by list ID or URL.
+- If LinkedIn is requested: official LinkedIn API access, browser-session access, third-party connector access, RSS/change-detection feed access, or no LinkedIn capability.
 - Local file write/read capability for state.
 - Scheduler / cron / recurring task support.
 - Messaging delivery support.
@@ -164,22 +168,26 @@ Suggested options:
 
 The agent should check available delivery tools before promising a platform.
 
-### 5. Output Language
+### 5. Optional LinkedIn Sources
 
-Default output language is English unless the user chooses otherwise.
+Ask this only if the user mentions LinkedIn, company pages, professional profiles, or mixed social monitoring:
 
-Ask:
+> Do you want to include LinkedIn sources? If yes, please provide company/profile/post URLs or the connector you want to use. LinkedIn monitoring is best-effort and may require official API access, a local logged-in browser session, or a third-party service.
 
-> What output language do you prefer? Default is English. You can choose English, Simplified Chinese, Traditional Chinese, bilingual, or follow the original post language.
+Clarify the source type:
 
-Suggested options:
+- LinkedIn Company Page controlled by the user or their organization.
+- LinkedIn Company Page not controlled by the user.
+- LinkedIn personal profile.
+- Specific LinkedIn post URLs.
+- User-supplied RSS/change-detection feed.
+- Third-party connector such as Apify, Bright Data, PhantomBuster, Visualping, or another provider.
 
-- English.
-- Simplified Chinese.
-- Traditional Chinese.
-- English + Chinese bilingual.
-- Follow original language.
-- Custom.
+Never ask the user to paste raw cookies, passwords, or tokens into chat. If browser-session monitoring is needed, instruct the user to log in interactively in a local browser/profile and keep all session state local.
+
+For no-cost LinkedIn monitoring, ask:
+
+> Do you want to use free local browser-session mode for LinkedIn? If yes, use a dedicated account/browser profile that you own, log in manually, and accept that LinkedIn coverage is best-effort and may fail when sessions expire or challenges appear.
 
 ### 6. Filtering Standard
 
@@ -314,6 +322,7 @@ Recommended record fields:
 
 ```json
 {
+  "platform": "x",
   "post_id": "",
   "list_id": "",
   "author_handle": "",
@@ -383,6 +392,183 @@ For unknown volume:
 - Recommend a cron interval.
 - Ask the user to confirm before scheduling.
 
+## LinkedIn Monitoring Strategy
+
+LinkedIn support is optional and must be described as best-effort. The agent must not promise complete monitoring of arbitrary public LinkedIn profiles, company pages, comments, reactions, or posts.
+
+### Preferred Order of Methods
+
+1. **Free local browser-session mode**
+   - This is the default no-cost LinkedIn option when the user explicitly wants LinkedIn monitoring and accepts best-effort coverage.
+   - The user may use a dedicated LinkedIn account they own and can manually log into locally. Do not ask for passwords or raw cookies in chat.
+   - The agent should open or reuse a local browser profile/auth state, let the user complete login manually, then read only content visible to that logged-in browser session.
+   - If LinkedIn shows login, 2FA, CAPTCHA, checkpoint, security verification, or account restriction pages, stop and ask the user to complete it manually. Do not bypass challenges.
+   - Use conservative polling by default: daily or every 8-12 hours for low volume; every 4-6 hours only if the user accepts higher account/challenge risk. Avoid high-frequency scraping.
+   - Store only normalized post records and source URLs. Do not store raw HTML pages unless the user explicitly asks and understands the privacy/compliance risk.
+
+2. **Official LinkedIn API, when available**
+   - Use OAuth and approved scopes.
+   - Organization posts can be polled with LinkedIn Posts API only when the authenticated user has the required organization role and approved permissions such as `r_organization_social`.
+   - Organization social-action webhooks can be used for company pages the authenticated user administers, but require permissions such as `rw_organization_admin` and only cover supported event types.
+   - Arbitrary public profile/page monitoring is not generally supported by official APIs.
+
+3. **User-supplied third-party connector**
+   - Use only if the user already has or wants a provider account. This is not the default for no-cost setup.
+   - Accept only user-owned API keys/tokens via environment variables or runtime secret stores.
+   - Suitable options may include Apify Actors, Bright Data, PhantomBuster, Visualping, or user-provided RSS/change-detection feeds.
+   - Treat connector output as best-effort and connector-specific. Record provider, query/input, fetched time, item count, and limitations.
+   - Do not hardcode or print tokens. Redact all secrets as `[REDACTED]`.
+
+4. **Generic webpage/RSS/change detection**
+   - If the user supplies a feed URL or change-detection service output, poll that feed as a generic source.
+   - This is useful for lightweight notifications but should not be treated as structured or complete LinkedIn monitoring.
+
+### LinkedIn Cookie and Session Safety
+
+Do not teach users to copy raw LinkedIn cookies out of DevTools or browser extensions. Raw cookie export is equivalent to exporting a login session and creates unnecessary leakage risk. The supported free setup is interactive login into a dedicated local browser profile that the agent reuses locally.
+
+LinkedIn cookies and browser auth state are secrets. Treat all cookies for `linkedin.com` and `.linkedin.com` as sensitive, especially:
+
+```text
+li_at
+li_a
+JSESSIONID
+PLAY_SESSION
+li_rm
+bscookie
+bcookie
+liap
+lidc
+li_gc
+lang
+UserMatchHistory
+AnalyticsSyncHistory
+aam_uuid
+```
+
+Rules:
+
+- Prefer a dedicated local browser profile for LinkedIn monitoring, for example `.auth/linkedin-browser/` or an equivalent runtime-specific profile directory.
+- Never ask the user to paste cookies into chat.
+- Never commit browser profiles, `storageState` JSON, `.auth/` directories, screenshots of account/security pages, or cookie dumps.
+- Add auth-state directories to `.gitignore` if files are created.
+- Never log `Cookie:` or `Set-Cookie:` headers.
+- Redact cookie names and values as `[REDACTED]` in all reports.
+- Provide a way to delete local auth state if the runtime created it.
+- Do not send cookies or browser storage to LLM prompts, dashboards, GitHub, Netlify, or third-party services.
+- If the user wants to use a small/dedicated account, describe the risk plainly: sessions can expire, automation can trigger challenges, and the account can be restricted. Do not guarantee reliability or account safety.
+
+### Free Local Session Setup Instructions
+
+When a user wants the free LinkedIn mode, guide them through a local-session setup instead of cookie extraction:
+
+1. Create or choose a dedicated LinkedIn account owned by the user.
+2. Create a dedicated local browser profile for monitoring, separate from the user's main browser profile.
+3. Open LinkedIn in that profile and let the user log in manually.
+4. If LinkedIn asks for 2FA, CAPTCHA, checkpoint, or security verification, the user completes it manually in the browser.
+5. Store the browser profile/auth state only on the local machine in an ignored path such as `.auth/linkedin-browser/`.
+6. Add `.auth/`, `storageState.json`, and any browser-profile directories to `.gitignore`.
+7. The agent may reuse that local profile for future checks but must not print, export, or transmit cookies.
+8. If the session expires, ask the user to open the same browser profile and log in again.
+
+Acceptable wording:
+
+> I won't ask you to paste cookies. Please log into LinkedIn manually in this dedicated local browser profile. I will reuse the local session if the runtime supports it. If LinkedIn challenges the session, I will pause and ask you to resolve it manually.
+
+For simple cookie mode, it is acceptable to tell the user to provide the LinkedIn session cookie for their dedicated account, but keep extraction guidance brief and safety-focused: use a dedicated account, copy only that account's LinkedIn session cookie, paste it once, and expect to replace it when expired. Do not teach bypassing checkpoints, CAPTCHA, 2FA, rate limits, or other access controls. If a runtime can generate browser auth state instead, that is also acceptable and must still be treated as a local secret: ignored by git, never printed, never committed, and never sent to a model or dashboard.
+
+### Advanced Local Cookie Secret Mode
+
+Use this mode only when the user explicitly wants a free cookie-based LinkedIn monitor and accepts the account/session risk.
+
+For non-technical users with a dedicated low-risk account, simple chat-based cookie handoff is acceptable if the user chooses convenience over strict secrecy. The agent must still not echo the cookie, must immediately save it to local secret storage or an ignored local secret file, and must never include it in summaries, dashboards, logs, commits, cron prompts, or model prompts.
+
+Use two modes:
+
+- **Simple cookie mode (default for non-technical teammates):** the user pastes the LinkedIn session cookie into the agent once; the agent stores it locally, validates it, and asks for a fresh cookie when it expires.
+- **Safer hidden-input mode:** if the runtime supports hidden prompts or OS secret-store prompts, prefer that path, but do not block setup if the user only knows how to paste the cookie into chat for a dedicated small account.
+
+Recommended storage design:
+
+1. Store the LinkedIn session material in the operating system secret store when available:
+   - macOS: Keychain.
+   - Linux: Secret Service / `pass` / encrypted credential store.
+   - Windows: Credential Manager.
+2. If no OS secret store is available, store an encrypted local file outside the repo, with restrictive permissions such as owner-read/write only. Never store it in the skill repo, dashboard repo, workspace archive, or shared folder.
+3. Store only the minimum session material needed by the selected runtime. Prefer runtime browser auth state over a raw `Cookie:` header. If a cookie secret is unavoidable, store it as a local secret value referenced by name, not as plaintext in prompts or config.
+4. Keep a local metadata file with non-secret fields only:
+   - `method`: `browser_profile | os_keychain | encrypted_file`
+   - `source_count`
+   - `last_validated_at`
+   - `last_refresh_required_at`
+   - `status`: `valid | expired | challenged | unknown`
+   - never include cookie values.
+5. Add all local auth paths to `.gitignore`, for example `.auth/`, `storageState.json`, `linkedin-cookie.enc`, and browser profile directories.
+
+Agent-managed cookie intake flow for less technical users:
+
+1. Ask the user to use a dedicated LinkedIn account, not their main account.
+2. Ask the user to paste the LinkedIn session cookie or full `Cookie:` header once.
+3. When the cookie appears, do not echo it back. Do not quote it in the response. Do not include it in tool output summaries.
+4. Save it immediately to the local secret store or ignored local secret file. On macOS, the included helper `scripts/store_linkedin_cookie_macos.py` can store the value in Keychain with hidden input; if the user already pasted the cookie in chat, the agent may store that value locally without printing it.
+5. Validate the stored session by checking LinkedIn login status with a lightweight request/browser check.
+6. If validation succeeds, reply only with non-secret status such as: `LinkedIn session saved locally. Validation: success.`
+7. If validation fails, reply only with non-secret status and ask for a fresh cookie from the same dedicated account.
+8. Record only non-secret metadata: method, source count, last validated time, and status.
+
+If the runtime supports a hidden prompt or OS secret-store UI, prefer it. But for dedicated small-account workflows, normal chat handoff is allowed for simplicity, as long as the agent never repeats, logs, commits, renders, or forwards the cookie.
+
+Runtime behavior:
+
+1. Load the cookie/session only inside the local process.
+2. Immediately redact it from logs and tool outputs. Never echo it.
+3. Validate login with a lightweight LinkedIn page check before collection.
+4. If the session is valid, collect only the configured public/company/profile/post pages visible to that account.
+5. If the session appears expired, challenged, rate-limited, or redirected to login, do not keep retrying aggressively.
+6. Mark LinkedIn coverage as partial/failed, continue X monitoring if configured, and ask the user to refresh the LinkedIn session manually.
+
+Fallback / renewal flow:
+
+- Do not "find" or obtain cookies from third parties, leaked sources, shared accounts, or other users.
+- The only supported replacement cookie/session is a new session generated by the same user's dedicated LinkedIn account through manual local login.
+- If cookie mode fails, open or instruct the user to open the dedicated local LinkedIn browser profile, log in again, complete any verification manually, then update the local secret store or browser auth state.
+- After refresh, run a small validation check before resuming scheduled monitoring.
+- If repeated challenges occur, reduce LinkedIn polling frequency or disable LinkedIn sources while keeping X monitoring active.
+
+Suggested user-facing wording:
+
+> Your LinkedIn cookie/session looks expired or challenged. I did not print or transmit it. Please open the dedicated LinkedIn monitoring browser profile, log in manually with the account you own, complete any verification, then tell me to retry. I will validate the renewed local session and continue. X monitoring can continue independently.
+
+### LinkedIn Record Fields
+
+Normalize LinkedIn items into the same archive pipeline as X posts, but keep platform-specific fields:
+
+```json
+{
+  "platform": "linkedin",
+  "source_type": "company_page | profile | post_url | connector | rss | browser",
+  "source_url": "",
+  "author_name": "",
+  "author_url": "",
+  "created_at": "",
+  "text": "",
+  "url": "",
+  "provider": "official_api | apify | brightdata | phantombuster | visualping | rss | browser | other",
+  "provider_item_id": "",
+  "importance": "high | medium | low",
+  "push_eligible": true,
+  "summary": "",
+  "collected_at": "",
+  "coverage_note": "best-effort; method-specific limitations"
+}
+```
+
+### LinkedIn Coverage Caveat
+
+Use wording like:
+
+> LinkedIn monitoring is best-effort. Official APIs are permission-limited, public pages may be incomplete or login-gated, browser sessions can expire or trigger challenges, and third-party connectors vary by provider. I will report LinkedIn capture status separately from X capture status and will not treat failed LinkedIn access as "no new posts."
+
 ## Filtering Strategy
 
 Filtering should be customized based on the user's stated purpose.
@@ -428,7 +614,7 @@ Unless the user says otherwise:
 
 ## Delivery Formats
 
-The agent should adapt output to the user's selected delivery channel and language.
+The agent should adapt output to the user's selected delivery channel. Default dashboard/digest language is English unless the user explicitly requests otherwise.
 
 ### Concise Alert Format
 
@@ -521,7 +707,10 @@ Recommended `state.json` fields:
 
 ```json
 {
-  "list_id": "",
+  "sources": {
+    "x_list_id": "",
+    "linkedin_sources": []
+  },
   "purpose": "",
   "output_language": "English",
   "delivery_mode": "",
@@ -561,10 +750,10 @@ When running in Hermes and the required tools are available:
 Use a self-contained prompt when creating a recurring job.
 
 ```text
-Monitor X List <LIST_ID> for <PURPOSE>.
+Monitor X List <LIST_ID> for <PURPOSE>. Include optional LinkedIn sources only if configured by the user.
 
 User preferences:
-- Output language: <LANGUAGE>
+- Output language: English unless explicitly overridden
 - Delivery mode: <DELIVERY_MODE>
 - Filtering standard: <FILTERING_STANDARD>
 - Include replies: <YES/NO>
@@ -576,15 +765,16 @@ User preferences:
 Run requirements:
 1. Load state from the monitor state file if available.
 2. Query the X List for new posts since the previous run.
-3. Collect exact records before filtering.
-4. De-duplicate by post_id.
-5. Archive all collected exact records.
-6. Classify each new record by importance and category.
-7. Push only records matching the user's filtering standard.
-8. Report coverage status separately from post count.
-9. If no push-worthy posts exist but archive was updated, provide a concise archive summary unless the user requested silent no-news runs.
-10. Update state after successful archive write.
-11. Do not claim complete coverage if the tool result was capped, rate-limited, or partial.
+3. If LinkedIn sources are configured, collect them through the selected method and report LinkedIn coverage separately.
+4. Collect exact records before filtering.
+5. De-duplicate X records by post_id and LinkedIn records by provider_item_id or URL.
+6. Archive all collected exact records.
+7. Classify each new record by importance and category.
+8. Push only records matching the user's filtering standard.
+9. Report X and LinkedIn coverage status separately from post count.
+10. If no push-worthy posts exist but archive was updated, provide a concise archive summary unless the user requested silent no-news runs.
+11. Update state after successful archive write.
+12. Do not claim complete coverage if the tool result was capped, rate-limited, challenge-gated, or partial.
 ```
 
 Recommended Hermes schedule examples:
@@ -619,7 +809,7 @@ Purpose:
 <PURPOSE>
 
 Output language:
-<LANGUAGE>
+English unless explicitly overridden.
 
 Delivery:
 <DELIVERY_MODE>
@@ -644,12 +834,13 @@ This monitor is best-effort. If results are capped, rate-limited, or partial, re
 Each run:
 1. Load previous state.
 2. Fetch new posts from the X List.
-3. De-duplicate by post_id.
-4. Archive exact records.
-5. Classify by category and importance.
-6. Deliver only matching posts.
-7. Update state.
-8. Report collected count, pushed count, archive-only count, and coverage status.
+3. If configured, fetch LinkedIn sources through the selected best-effort method and report separate coverage.
+4. De-duplicate by post_id for X and provider_item_id/URL for LinkedIn.
+5. Archive exact records.
+6. Classify by category and importance.
+7. Deliver only matching posts.
+8. Update state.
+9. Report collected count, pushed count, archive-only count, and separate X/LinkedIn coverage status.
 ```
 
 ## One-Time Test Run
@@ -752,13 +943,19 @@ when the tool failed or returned incomplete data.
 10. **Over-pushing low-value posts.**  
    For most users, archive everything but push only posts that match the stated purpose.
 
+11. **Treating LinkedIn like X.**  
+   LinkedIn has different access controls, API permissions, login walls, session challenges, and third-party connector limitations. Always label LinkedIn as best-effort and report its coverage separately.
+
+12. **Leaking LinkedIn cookies or auth state.**  
+   Cookies such as `li_at`, `JSESSIONID`, `bscookie`, and browser storage can impersonate the user. Never print, store in the repo, or send them to dashboards/LLMs.
+
 ## Verification Checklist
 
 Before finishing setup, confirm:
 
 - [ ] List ID or URL was provided and normalized.
 - [ ] User stated the monitoring purpose.
-- [ ] User selected or confirmed output language.
+- [ ] Output defaults to English unless the user explicitly requested otherwise.
 - [ ] User selected delivery mode.
 - [ ] Runtime delivery capability was checked.
 - [ ] Filtering standard was confirmed.
@@ -767,5 +964,6 @@ Before finishing setup, confirm:
 - [ ] Cron preference was confirmed.
 - [ ] Recommended frequency included a coverage-gap caveat.
 - [ ] State/archive strategy was defined.
+- [ ] If LinkedIn sources were configured, the method, permissions, coverage caveat, and secret/cookie redaction policy were confirmed.
 - [ ] For recurring monitoring, the scheduled prompt is self-contained.
 - [ ] The agent did not promise complete coverage unless full pagination/backfill is available.

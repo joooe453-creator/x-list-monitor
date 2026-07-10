@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Monitor Dashboard — Demo</title>
+  <style>
+    :root{
+      --bg:#F9F5F0; --card:#fffdfa; --ink:#1d1b17; --muted:#70685d; --line:#dfd2c3;
+      --accent:#0f766e; --accent2:#134e4a; --blue:#1d4ed8; --amber:#b45309; --red:#b91c1c;
+      --shadow:0 10px 28px rgba(64,48,31,.07); --r:18px;
+      --sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);font-family:var(--sans);color:var(--ink);line-height:1.5}
+    .wrap{width:min(1180px,calc(100% - 28px));margin:auto}
+    header{padding:22px 0 14px;border-bottom:1px solid var(--line);background:rgba(249,245,240,.92);position:sticky;top:0;z-index:10;backdrop-filter:blur(14px)}
+    .head{display:flex;justify-content:space-between;gap:16px;align-items:flex-end;flex-wrap:wrap}
+    h1{margin:0;font-size:28px;letter-spacing:-.04em;line-height:1.1}
+    .sub{margin-top:5px;color:var(--muted);font-size:14px}.run-times{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .pill{border:1px solid var(--line);background:rgba(255,255,255,.58);border-radius:999px;padding:7px 10px;color:var(--muted);font-size:13px}.pill strong{color:var(--ink)}
+    .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:16px 0}.stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)}.stat b{display:block;font-size:25px;letter-spacing:-.04em}.stat span{font-size:12px;color:var(--muted)}
+    .tabs{display:flex;gap:8px;overflow:auto;padding:2px 0 16px}.tab{border:1px solid var(--line);background:#fffaf5;border-radius:999px;padding:9px 13px;font-weight:750;color:var(--muted);white-space:nowrap}.tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+    .feed{display:grid;gap:12px;margin-bottom:40px}.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+    .card-head{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:10px}.src{font-weight:850}.time{color:var(--muted);font-size:13px;margin-top:2px}.badge{font-size:12px;font-weight:850;border-radius:999px;padding:5px 9px;white-space:nowrap}.high{background:#fee2e2;color:var(--red)}.mid{background:#fff4dc;color:var(--amber)}.li{background:#e8f0ff;color:var(--blue)}
+    .title{font-size:19px;font-weight:850;letter-spacing:-.03em;margin:0 0 10px}.block{margin-top:11px}.label{font-size:12px;color:var(--accent);font-weight:850;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}.text{color:var(--muted);margin:0}.orig{background:#f4ede4;border:1px solid #eadfd2;border-radius:12px;padding:11px;color:#4f463b;font-size:13px;line-height:1.5}.link{color:var(--accent2);font-weight:800;text-decoration:none}
+    .foot{padding:18px 0 40px;color:var(--muted);font-size:13px}
+    @media(max-width:900px){.stats{grid-template-columns:repeat(2,1fr)}.run-times{justify-content:flex-start}}@media(max-width:560px){.stats{grid-template-columns:1fr}.card-head{display:block}.badge{display:inline-block;margin-top:8px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap head">
+      <div>
+        <h1>Social Monitor Digest</h1>
+        <div class="sub">Demo X List + LinkedIn sources · sample data</div>
+      </div>
+      <div class="run-times">
+        <span class="pill"><strong>Last run</strong> 2026-07-10 12:00 UTC</span>
+        <span class="pill"><strong>Next run</strong> 2026-07-10 16:00 UTC</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="stats" aria-label="run summary">
+      <div class="stat"><b>38</b><span>new posts archived</span></div>
+      <div class="stat"><b>9</b><span>important updates</span></div>
+      <div class="stat"><b>31</b><span>X posts</span></div>
+      <div class="stat"><b>7</b><span>LinkedIn posts</span></div>
+      <div class="stat"><b>29</b><span>low priority</span></div>
+    </section>
+
+    <nav class="tabs" aria-label="filters">
+      <button class="tab active">Important</button>
+      <button class="tab">X</button>
+      <button class="tab">LinkedIn</button>
+      <button class="tab">All</button>
+      <button class="tab">Low priority</button>
+    </nav>
+
+    <section class="feed">
+      <article class="card">
+        <div class="card-head">
+          <div><div class="src">@ExampleNews · X</div><div class="time">2026-07-10 12:08 UTC · original · Market</div></div>
+          <span class="badge high">High</span>
+        </div>
+        <h2 class="title">Major exchange reportedly adds new institutional settlement rail</h2>
+        <div class="block"><div class="label">Summary</div><p class="text">A major exchange announced an institutional settlement product with stablecoin support. This may be relevant for market structure, exchange infrastructure, and institutional adoption monitoring.</p></div>
+        <div class="block"><div class="label">Original</div><div class="orig">“Major exchange announces a new institutional settlement product with stablecoin support...”</div></div>
+        <div class="block"><a class="link" href="#">Open original →</a></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div><div class="src">LinkedIn · Example Company</div><div class="time">2026-07-10 10:40 UTC · company page · Partnership</div></div>
+          <span class="badge li">LinkedIn</span>
+        </div>
+        <h2 class="title">Company announces security partnership in APAC market</h2>
+        <div class="block"><div class="label">Summary</div><p class="text">The company announced a security partnership for the APAC market. The item is included as a monitored LinkedIn source and labeled separately from X posts.</p></div>
+        <div class="block"><div class="label">Original</div><div class="orig">“We are excited to partner with ... to expand institutional-grade security coverage...”</div></div>
+        <div class="block"><a class="link" href="#">Open LinkedIn post →</a></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <div><div class="src">@SecurityFeed · X</div><div class="time">2026-07-10 09:15 UTC · quote · Security</div></div>
+          <span class="badge mid">Medium</span>
+        </div>
+        <h2 class="title">Exploit discussion appears across multiple security accounts</h2>
+        <div class="block"><div class="label">Summary</div><p class="text">Multiple security accounts discussed the same incident. The dashboard merges related coverage into one visible card while keeping exact records in the archive.</p></div>
+        <div class="block"><div class="label">Coverage note</div><p class="text">Captured 6 related posts, displayed 1 merged card, archived all exact records.</p></div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="wrap foot">Demo only. In production, this HTML would be regenerated from JSONL/state after each scheduled run.</footer>
+</body>
+</html>
