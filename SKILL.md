@@ -28,6 +28,124 @@ The agent must not assume the user's goal. It should ask onboarding questions, u
 
 This skill is runtime-agnostic. It can be used in Hermes, OpenClaw, or another capable agent environment. The agent should first inspect available capabilities instead of assuming specific tools exist.
 
+
+## Step 0 — Connect Grok / xAI Before Monitoring
+
+Before asking for X List IDs, delivery rules, schedules, or LinkedIn sources, the agent should help the user confirm that their runtime can access X data through Grok/xAI.
+
+This is the first setup step because the X monitoring workflow depends on an X-capable search/intelligence backend. If Grok/xAI is not connected, the agent must not promise reliable X List monitoring. Instead, it should guide the user through one of the supported connection paths below.
+
+### Hermes: SuperGrok / Grok Premium OAuth
+
+Use this when the user has a Grok Premium / SuperGrok subscription and wants to connect the account directly without creating a separate paid API key.
+
+Recommended command:
+
+```bash
+hermes auth add xai-oauth
+```
+
+Then select Grok as the model/provider if desired:
+
+```bash
+hermes model
+```
+
+Choose the xAI Grok OAuth / SuperGrok provider and a Grok model such as `grok-4.3` if available.
+
+Enable the X search toolset:
+
+```bash
+hermes tools enable x_search
+```
+
+Restart or start a fresh session after enabling tools:
+
+```text
+/reset
+```
+
+Verify:
+
+```bash
+hermes status
+hermes doctor
+```
+
+In chat, the agent can also verify by attempting a small `x_search` query if the tool is available.
+
+Notes:
+
+- `x_search` registers when either SuperGrok OAuth is logged in or `XAI_API_KEY` is available.
+- OAuth tokens are stored locally by Hermes; users should not paste Grok credentials into chat.
+- If OAuth expires or fails, ask the user to run `hermes auth add xai-oauth` again or reauthenticate through `hermes model`.
+
+### Hermes: xAI API Key
+
+Use this when the user has a paid xAI API key instead of, or in addition to, a Grok subscription login.
+
+Set:
+
+```bash
+XAI_API_KEY=<your_xai_api_key>
+```
+
+The key should live in the Hermes env file, not in the skill, dashboard, cron prompt, or chat transcript. To find the env file:
+
+```bash
+hermes config env-path
+```
+
+Then enable X search:
+
+```bash
+hermes tools enable x_search
+```
+
+Restart or start a fresh session.
+
+### OpenClaw: direct Grok/xAI connection
+
+If OpenClaw has a provider/model settings UI, configure xAI/Grok there first. Prefer one of these options, depending on what OpenClaw supports:
+
+1. xAI API key with a Grok model.
+2. Built-in SuperGrok/Grok OAuth, if OpenClaw supports it.
+3. OpenAI-compatible endpoint pointed at a local Hermes proxy, if OpenClaw supports custom OpenAI-compatible providers.
+
+### OpenClaw via Hermes Proxy
+
+If OpenClaw cannot log into SuperGrok directly but can use an OpenAI-compatible endpoint, use Hermes as a local proxy after logging into SuperGrok in Hermes.
+
+First authenticate Hermes:
+
+```bash
+hermes auth add xai-oauth
+```
+
+Then run the proxy:
+
+```bash
+hermes proxy start --provider xai-oauth --port 8645
+```
+
+Configure OpenClaw custom OpenAI-compatible provider:
+
+```text
+Base URL: http://127.0.0.1:8645/v1
+API key: any non-empty placeholder, for example local-proxy
+Model: a Grok model exposed by the proxy, for example grok-4.3 if available
+```
+
+Keep the proxy running while OpenClaw uses it. Do not expose the proxy to the public internet.
+
+### What the agent should ask first
+
+Start onboarding with:
+
+> First, how will this agent access Grok/xAI for X monitoring? Options: Hermes SuperGrok OAuth, Hermes XAI_API_KEY, OpenClaw direct xAI/Grok setup, or OpenClaw through a Hermes local proxy.
+
+Only after this is answered and verified should the agent ask for List IDs, LinkedIn sources, push rules, filters, or cron schedule.
+
 ## When to Use
 
 Use this skill when the user wants to:
@@ -47,7 +165,7 @@ Do not use this skill for:
 - Managing the user's X account.
 - Scraping private or unauthorized content.
 - Bypassing login, CAPTCHA, 2FA, paywalls, rate limits, or platform access controls.
-- Asking the user to paste raw LinkedIn cookies into chat.
+- Echoing, committing, logging, or rendering raw LinkedIn cookies after intake. Simple cookie paste may be used for low-risk dedicated accounts when the user accepts the tradeoff.
 - Guaranteeing complete historical backfill without tool support for pagination or bounded retrieval.
 
 ## Runtime Capability Check

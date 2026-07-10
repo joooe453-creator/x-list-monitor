@@ -47,18 +47,78 @@ Copy the contents of `SKILL.md` into your agent's skill, instruction, or workflo
 
 The skill is intentionally not tied to Hermes-only tools. It tells the agent to detect runtime capabilities and adapt to whatever tools are available.
 
+
+## Step 0: connect Grok / xAI first
+
+Before giving the agent an X List ID, connect a Grok/xAI backend. This is the first step because X monitoring depends on an X-capable search/intelligence tool.
+
+### Hermes with Grok Premium / SuperGrok
+
+```bash
+hermes auth add xai-oauth
+hermes tools enable x_search
+```
+
+Then restart/start a fresh session and verify:
+
+```bash
+hermes status
+hermes doctor
+```
+
+Optional: choose Grok as the main model:
+
+```bash
+hermes model
+```
+
+Select the xAI Grok OAuth / SuperGrok provider and a Grok model such as `grok-4.3` if available.
+
+### Hermes with xAI API key
+
+Set `XAI_API_KEY` in the Hermes env file:
+
+```bash
+hermes config env-path
+```
+
+Then enable the X search tool:
+
+```bash
+hermes tools enable x_search
+```
+
+### OpenClaw
+
+Configure xAI/Grok in OpenClaw first if it supports direct provider setup. If OpenClaw only supports OpenAI-compatible custom endpoints, log into SuperGrok through Hermes and run:
+
+```bash
+hermes proxy start --provider xai-oauth --port 8645
+```
+
+Then configure OpenClaw with:
+
+```text
+Base URL: http://127.0.0.1:8645/v1
+API key: local-proxy
+Model: grok-4.3 or another model exposed by the proxy
+```
+
+Keep the proxy running while OpenClaw uses it.
+
 ## Recommended onboarding flow
 
 The agent should ask the user:
 
-1. What X List ID or URL should be monitored?
-2. What is the purpose of monitoring this list?
-3. Roughly how many posts does the list produce per day?
-4. How should results be delivered?
-5. What output language should be used?
-6. What should be pushed versus only archived?
-7. Should replies, retweets, and quote tweets be included?
-8. Should recurring cron/scheduled monitoring be enabled?
+1. How will the agent access Grok/xAI? Hermes SuperGrok OAuth, Hermes XAI_API_KEY, OpenClaw direct setup, or OpenClaw via Hermes proxy?
+2. What X List ID or URL should be monitored?
+3. What is the purpose of monitoring this list?
+4. Roughly how many posts does the list produce per day?
+5. How should results be delivered?
+6. What output language should be used?
+7. What should be pushed versus only archived?
+8. Should replies, retweets, and quote tweets be included?
+9. Should recurring cron/scheduled monitoring be enabled?
 
 ## Completeness caveat
 
