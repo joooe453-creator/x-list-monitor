@@ -2,8 +2,6 @@
 
 A runtime-agnostic agent skill for monitoring X/Twitter Lists.
 
-Live HTML overview: https://joooe453-creator.github.io/x-list-monitor/
-
 This skill helps an AI agent ask the right onboarding questions, understand the user's monitoring purpose, estimate expected post volume, recommend a cron frequency, set filtering rules, and optionally configure scheduled delivery.
 
 It is designed to work with Hermes, OpenClaw, or other capable agent runtimes.
